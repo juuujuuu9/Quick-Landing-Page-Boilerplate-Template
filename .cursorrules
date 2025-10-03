@@ -1,0 +1,196 @@
+# Landing Page Template - Cursor Rules
+
+You are working on a streamlined landing page template for client events. This template uses Astro + TypeScript + Tailwind CSS + PostgreSQL + Resend email service, deployed on Vercel.
+
+## Project Architecture
+- **Frontend**: Astro with TypeScript, Tailwind CSS
+- **Backend**: Astro API routes with serverless functions
+- **Database**: PostgreSQL with connection pooling
+- **Email**: Resend service for notifications
+- **Deployment**: Vercel with zero-config deployment
+- **Authentication**: Simple admin authentication (no complex auth systems)
+
+## Database & Authentication Setup Rules
+
+### Database Setup Checklist
+- [ ] Verify DATABASE_URL is properly configured in .env
+- [ ] Test database connection before starting development
+- [ ] Ensure admin user exists in database (create if missing)
+- [ ] For bcryptjs in serverless environments, always use `bcrypt.default.compare()` and `bcrypt.default.hash()`
+- [ ] Initialize database schema on first run
+
+### Common bcryptjs Issues
+When using dynamic imports with bcryptjs in Astro/Vercel:
+```typescript
+// ❌ WRONG - causes "bcrypt.compare is not a function"
+const bcrypt = await import('bcryptjs');
+const isValid = await bcrypt.compare(password, hash);
+
+// ✅ CORRECT - use .default
+const bcrypt = await import('bcryptjs');
+const isValid = await bcrypt.default.compare(password, hash);
+```
+
+### Database Connection Patterns
+```typescript
+// Always use connection pooling for PostgreSQL
+const pool = new Pool({
+  connectionString: import.meta.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
+// Always release connections in finally blocks
+const client = await pool.connect();
+try {
+  // database operations
+} finally {
+  client.release();
+}
+```
+
+## Development Server Debugging
+
+### Quick Debugging Steps
+1. Check server logs for specific error messages
+2. Test API endpoints with curl to isolate issues
+3. Verify environment variables are loaded
+4. Test database connection independently
+5. Add temporary console.log statements for debugging
+
+### Port Management
+- Astro dev server may use different ports (4321, 4322, etc.)
+- Use `lsof -i :4321` to find active ports
+- Always check which port the server is actually running on
+
+## Error Handling Patterns
+
+### API Error Handling Best Practices
+- Always include specific error details in development
+- Use try-catch with proper error logging
+- Return meaningful error messages to frontend
+- Log both error message and stack trace for debugging
+
+### Environment Setup Validation
+```typescript
+// Pre-flight checks for environment variables
+const getApiKey = () => {
+  const apiKey = import.meta.env.RESEND_API_KEY || process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.error('RESEND_API_KEY is not set in environment variables');
+    return null;
+  }
+  if (!apiKey.startsWith('re_')) {
+    console.error('RESEND_API_KEY appears to be invalid (should start with "re_")');
+    return null;
+  }
+  return apiKey;
+};
+```
+
+## Pre-flight Checks
+- [ ] .env file exists and has required variables
+- [ ] Database connection string is valid
+- [ ] Required npm packages are installed
+- [ ] Development server starts without errors
+- [ ] API endpoints respond correctly
+
+## Code Patterns & Best Practices
+
+### Form Handling
+- Always validate required fields on both client and server
+- Use proper TypeScript interfaces for form data
+- Implement proper error states and success feedback
+- Use FormData API for form submissions
+
+### Email Notifications
+- Implement rate limiting for multiple admin emails
+- Use proper HTML email templates
+- Handle email service failures gracefully
+- Log email sending attempts and results
+
+### Database Operations
+- Use parameterized queries to prevent SQL injection
+- Implement proper error handling for database operations
+- Use transactions for related operations
+- Always validate data before database operations
+
+## File Structure Conventions
+```
+src/
+├── components/     # Reusable UI components
+├── layouts/       # Page layouts
+├── lib/          # Database, email, and utility functions
+├── pages/        # Astro pages and API routes
+│   └── api/      # API endpoints
+└── styles/       # Global styles
+```
+
+## Environment Variables
+Required environment variables:
+- `DATABASE_URL`: PostgreSQL connection string
+- `RESEND_API_KEY`: Resend email service API key
+- `ADMIN_USERNAME`: Admin login username
+- `ADMIN_PASSWORD`: Admin login password
+- `ADMIN_EMAIL_1-4`: Admin notification email addresses
+- `FROM_EMAIL`: Sender email address
+- `FROM_NAME`: Sender name
+- `SITE_URL`: Full site URL for production
+
+## Deployment Considerations
+- All environment variables must be set in Vercel dashboard
+- Database must be accessible from Vercel's IP ranges
+- Use Vercel's serverless functions for API routes
+- Test all functionality in preview deployments
+
+## Common Issues & Solutions
+
+### Database Connection Issues
+- Check SSL configuration for production databases
+- Verify connection string format
+- Test connection with a simple query first
+
+### Email Service Issues
+- Verify Resend API key format (starts with 're_')
+- Check admin email addresses are valid
+- Implement proper error handling for email failures
+
+### Serverless Function Issues
+- Keep functions lightweight and fast
+- Use proper imports for serverless environments
+- Handle cold starts appropriately
+
+## Performance Optimizations
+- Use connection pooling for database connections
+- Implement proper caching strategies
+- Optimize images and assets
+- Use Tailwind's purge feature for smaller CSS bundles
+
+## Security Considerations
+- Validate all user inputs
+- Use parameterized database queries
+- Implement proper CORS policies
+- Sanitize email content
+- Use HTTPS in production
+
+## Development Workflow
+1. Run `npm run setup` to initialize project structure
+2. Configure `.env` file with your settings
+3. Test database connection
+4. Run `npm run dev` to start development server
+5. Test all API endpoints
+6. Deploy to Vercel for testing
+
+## Quick Commands
+- `npm run setup` - Initialize project structure
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+
+## Template Customization
+- Update form fields in `src/lib/database.ts`
+- Modify email templates in `src/lib/email.ts`
+- Customize styling in `src/components/`
+- Add new pages in `src/pages/`
+- Update admin interface as needed
+
+Remember: This template is designed for rapid deployment of client landing pages. Keep it simple, focused, and maintainable.
